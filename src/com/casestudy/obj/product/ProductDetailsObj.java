@@ -7,12 +7,12 @@ public class ProductDetailsObj implements java.io.Serializable{
 
 	private static final long serialVersionUID = 1996030128960812951L;
 	
-	private String id;
+	private int id;
 	private String name;
 	private ProductPriceObj current_price;
 	private String errorMsg;
 	
-	public ProductDetailsObj(String id, String name, ProductPriceObj current_price) {
+	public ProductDetailsObj(Integer id, String name, ProductPriceObj current_price) {
 		this.id = id;
 		this.name = name;
 		this.current_price = current_price;
@@ -24,10 +24,10 @@ public class ProductDetailsObj implements java.io.Serializable{
 	
 	public ProductDetailsObj() {}
 	
-	public String getId() {
+	public Integer getId() {
 		return id;
 	}
-	public void setId(String id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 	public String getName() {
