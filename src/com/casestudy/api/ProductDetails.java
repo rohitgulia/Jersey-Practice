@@ -30,6 +30,8 @@ import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 
+import com.casestudy.misc.ProductIdNotValidException;
+import com.casestudy.misc.ProductNotFoundException;
 import com.casestudy.obj.product.ProductDetailsObj;
 import com.casestudy.obj.product.ProductPriceObj;
 import com.casestudy.redis.RedisConnectionSetup;
@@ -56,17 +58,18 @@ public class ProductDetails {
 		String output;
 		RedissonClient redisClient = redisConn.getRedisson();
 
-		RMap<Integer, ProductDetailsObj> productListInRedis = redisClient.getMap("productList");
-
 		try {
+			if (redisClient == null)
+				throw new Exception("Sorry. No Database connection");
+
+			RMap<Integer, ProductDetailsObj> productListInRedis = redisClient.getMap("productList");
+
 			ClientConfig config = new ClientConfig();
 			config.connectorProvider(new ApacheConnectorProvider());
 			Client client = ClientBuilder.newClient(config);
-			Response response = client.target(getBaseURI()).path("v2")
-					.path("pdp")
-					.path("tcin")
-					.path(id)
-					.property(ClientProperties.FOLLOW_REDIRECTS, true).request(MediaType.APPLICATION_JSON).get(Response.class);
+			Response response = client.target(getBaseURI()).path("v2").path("pdp").path("tcin").path(id)
+					.property(ClientProperties.FOLLOW_REDIRECTS, true).request(MediaType.APPLICATION_JSON)
+					.get(Response.class);
 
 			if (response.getStatus() != 200)
 				throw new RuntimeException("Failed : HTTP error code : " + response.getStatus());
@@ -80,25 +83,25 @@ public class ProductDetails {
 			if (rootNode.has("product"))
 				productNode = rootNode.path("product");
 			else
-				throw new Exception("Sorry. No Product List!!");
+				throw new ProductNotFoundException("Sorry. No Product List!!");
 
 			JsonNode itemNode;
 			if (productNode.has("item"))
 				itemNode = productNode.path("item");
 			else
-				throw new Exception("Sorry. Product not found!!");
+				throw new ProductNotFoundException("Sorry. Product not found!!");
 
 			if (itemNode.has("tcin"))
 				productDtlsObj.setId(Integer.parseInt(itemNode.findValue("tcin").textValue()));
 			else
-				throw new Exception("Sorry. Product id not found!!");
+				throw new ProductNotFoundException("Sorry. Product id not found!!");
 
 			if (itemNode.has("product_description") && itemNode.path("product_description").has("title"))
 				productDtlsObj.setName(itemNode.path("product_description").findValue("title").textValue());
 			else
-				throw new Exception("Sorry. Product description not found!!");
+				throw new ProductNotFoundException("Sorry. Product description not found!!");
 
-			ProductDetailsObj productDtlsObjFromRedis = productListInRedis.get(13860428);
+			ProductDetailsObj productDtlsObjFromRedis = productListInRedis.get(productDtlsObj.getId());
 
 			productDtlsObj.setCurrent_price(productDtlsObjFromRedis.getCurrent_price());
 
@@ -114,6 +117,7 @@ public class ProductDetails {
 	}
 
 	// modify existing data in redis
+	// http://localhost:8080/CaseStudy/api/products/13860428
 	@PUT
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("{id}")
@@ -121,17 +125,18 @@ public class ProductDetails {
 		JSONObject result = new JSONObject();
 		try {
 			int productId = Integer.parseInt(id);
-			if (productId < 0)
-				throw new Exception("Sorry. Product id not valid");
-
 			RedissonClient redisClient = redisConn.getRedisson();
+			if (productId < 0)
+				throw new ProductIdNotValidException("Sorry. Product id not valid");
+			else if (redisClient == null)
+				throw new Exception("Sorry. No Database connection");
 
 			RMap<Integer, ProductDetailsObj> productListInRedis = redisClient.getMap("productList");
 
-			if (productListInRedis.containsKey(productId)) {
+			if (productListInRedis.containsKey(productId))
 				productListInRedis.replace(productId, productDtlsObj);
-			} else
-				throw new Exception("Sorry. Product id not valid");
+			else
+				throw new ProductIdNotValidException("Sorry. Product id not valid");
 
 			result.put("result", "Success");
 
@@ -143,6 +148,7 @@ public class ProductDetails {
 	}
 
 	// add new data to redis
+	// http://localhost:8080/CaseStudy/api/products/addProduct
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -150,23 +156,36 @@ public class ProductDetails {
 	public Response AddNewProductToRedis(ProductDetailsObj productDtlsObj) {
 		JSONObject result = new JSONObject();
 		try {
-
-			if (productDtlsObj.getId() < 0)
-				throw new Exception("Sorry. Product id not valid");
-
 			RedissonClient redisClient = redisConn.getRedisson();
+			
+			if (productDtlsObj.getId() < 0)
+				throw new ProductIdNotValidException("Sorry. Product id not valid");
+			else if(productDtlsObj.getCurrent_price().getValue() < 0)
+				throw new Exception("Sorry. Price cannot be negative");
+			else if (redisClient == null)
+				throw new Exception("Sorry. No Database connection");
 
 			RMap<Integer, ProductDetailsObj> productListInRedis = redisClient.getMap("productList");
+			
+			if (productListInRedis.containsKey(productDtlsObj.getId()))
+				throw new Exception("Sorry. Data already exists");
+			
 			productListInRedis.put(productDtlsObj.getId(), productDtlsObj);
 
 			result.put("result", "Success");
 
+		} catch (ProductIdNotValidException e) {
+			result.put("errorMsg", e.getMessage());
+			e.printStackTrace();
 		} catch (Exception e) {
 			result.put("errorMsg", e.getMessage());
 			e.printStackTrace();
 		}
 
-		return Response.status(200).entity(result.toString()).build();
+		if(result.has("errorMsg"))	
+			return Response.status(200).entity(result.toString()).build();
+		else
+			return Response.status(201).entity(result.toString()).build();
 	}
 
 	private static URI getBaseURI() {
