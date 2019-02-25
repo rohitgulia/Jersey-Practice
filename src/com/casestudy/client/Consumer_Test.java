@@ -18,31 +18,47 @@ public class Consumer_Test {
 
 	private Client client = ClientBuilder.newClient();
 
-	public void createNewData_ThrowException() throws ProductIdNotValidException, Exception {
-			ProductPriceObj productPriceObj = new ProductPriceObj(22.33, "USD");
-			ProductDetailsObj productDtlsObj = new ProductDetailsObj(-13860428, "Movie", productPriceObj);
-			client.target(URL).path(String.valueOf("addProduct")).request(MediaType.APPLICATION_JSON)
-					.post(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
+	public void createNewData_invalidProductId_throwException() throws ProductIdNotValidException, Exception {
+		ProductPriceObj productPriceObj = new ProductPriceObj(22.33, "USD");
+		ProductDetailsObj productDtlsObj = new ProductDetailsObj(-13860428, "Movie", productPriceObj);
+		client.target(URL).path(String.valueOf("addProduct")).request(MediaType.APPLICATION_JSON)
+				.post(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
 	}
 
-	public void updateData() {
-		try {
-			ProductPriceObj productPriceObj = new ProductPriceObj(42.33, "CAD");
-			ProductDetailsObj productDtlsObj = new ProductDetailsObj(13860428, "Movie2", productPriceObj);
-			Response response = client.target(URL).path("13860428").request(MediaType.APPLICATION_JSON)
-					.put(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
-
-			System.out.println("Status: "+response.getStatus());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public void createNewData_invalidPriceValue_throwException() throws ProductIdNotValidException, Exception {
+		ProductPriceObj productPriceObj = new ProductPriceObj(-22.33, "USD");
+		ProductDetailsObj productDtlsObj = new ProductDetailsObj(13860428, "Movie", productPriceObj);
+		client.target(URL).path(String.valueOf("addProduct")).request(MediaType.APPLICATION_JSON)
+				.post(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
 	}
 
+	public void updateData_invalidProductId_throwException() throws ProductIdNotValidException, Exception {
+		ProductPriceObj productPriceObj = new ProductPriceObj(42.33, "CAD");
+		ProductDetailsObj productDtlsObj = new ProductDetailsObj(-13860428, "Movie2", productPriceObj);
+		client.target(URL).path("13860428").request(MediaType.APPLICATION_JSON)
+				.put(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
+	}
+
+	public void updateData_invalidPriceValue_throwException() throws ProductIdNotValidException, Exception {
+		ProductPriceObj productPriceObj = new ProductPriceObj(-42.33, "CAD");
+		ProductDetailsObj productDtlsObj = new ProductDetailsObj(13860428, "Movie2", productPriceObj);
+		client.target(URL).path("13860").request(MediaType.APPLICATION_JSON)
+				.put(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
+	}
+	
+	public void updateData_invalidProductIdInPathParam_throwException() throws ProductIdNotValidException, Exception {
+		ProductPriceObj productPriceObj = new ProductPriceObj(42.33, "CAD");
+		ProductDetailsObj productDtlsObj = new ProductDetailsObj(3860428, "Movie2", productPriceObj);
+		client.target(URL).path("-3860428").request(MediaType.APPLICATION_JSON)
+				.put(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
+	}
+	
 	public void getData() {
 		Response response = client.target(URL).path("13860428").request(MediaType.APPLICATION_JSON).get();
 
 		ProductDetailsObj productDtlsObj = response.readEntity(ProductDetailsObj.class);
-		System.out.println("Status: "+ response.getStatus());
-		System.out.println("Id: "+productDtlsObj.getId() +"\n"+ "Name: "+ productDtlsObj.getName() + "\n" + "Value: "+ productDtlsObj.getCurrent_price().getValue());
+		System.out.println("Status: " + response.getStatus());
+		System.out.println("Id: " + productDtlsObj.getId() + "\n" + "Name: " + productDtlsObj.getName() + "\n"
+				+ "Value: " + productDtlsObj.getCurrent_price().getValue());
 	}
 }
