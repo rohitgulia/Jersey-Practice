@@ -56,14 +56,12 @@ public class ProductDetails {
 	public Response getProductDetails(@NotNull @PathParam("id") String id) {
 		ProductDetailsObj productDtlsObj = new ProductDetailsObj();
 		String output;
-		RedissonClient redisClient = redisConn.getRedisson();
-
 		try {
-			if (redisClient == null)
-				throw new Exception("Sorry. No Database connection");
+			RedissonClient redisClient = checkDatabaseConnection();
 
 			RMap<Integer, ProductDetailsObj> productListInRedis = redisClient.getMap("productList");
 
+			// get data from external api
 			ClientConfig config = new ClientConfig();
 			config.connectorProvider(new ApacheConnectorProvider());
 			Client client = ClientBuilder.newClient(config);
@@ -101,10 +99,11 @@ public class ProductDetails {
 			else
 				throw new ProductNotFoundException("Sorry. Product description not found!!");
 
-			ProductDetailsObj productDtlsObjFromRedis = productListInRedis.get(productDtlsObj.getId());
-
-			productDtlsObj.setCurrent_price(productDtlsObjFromRedis.getCurrent_price());
-
+			// find product in redis and get price for it
+			if (productListInRedis.containsKey(productDtlsObj.getId())) {
+				ProductDetailsObj productDtlsObjFromRedis = productListInRedis.get(productDtlsObj.getId());
+				productDtlsObj.setCurrent_price(productDtlsObjFromRedis.getCurrent_price());
+			}
 		} catch (RuntimeException | IOException e) {
 			productDtlsObj.setErrorMsg("Product Not Found");
 			e.printStackTrace();
@@ -125,12 +124,13 @@ public class ProductDetails {
 		JSONObject result = new JSONObject();
 		try {
 			int productId = Integer.parseInt(id);
-			RedissonClient redisClient = redisConn.getRedisson();
-			if (productId < 0)
+			RedissonClient redisClient = checkDatabaseConnection();
+			
+			if(productId < 0 || productDtlsObj.getId() < 0)
 				throw new ProductIdNotValidException("Sorry. Product id not valid");
-			else if (redisClient == null)
-				throw new Exception("Sorry. No Database connection");
-
+			else if(productDtlsObj.getCurrent_price().getValue() < 0)
+				throw new Exception("Sorry. Price cannot be negative");
+			
 			RMap<Integer, ProductDetailsObj> productListInRedis = redisClient.getMap("productList");
 
 			if (productListInRedis.containsKey(productId))
@@ -138,8 +138,11 @@ public class ProductDetails {
 			else
 				throw new ProductIdNotValidException("Sorry. Product id not valid");
 
-			result.put("result", "Success");
+			result.put("result", "success");
 
+		} catch (ProductIdNotValidException e) {
+			result.put("errorMsg", e.getMessage());
+			e.printStackTrace();
 		} catch (Exception e) {
 			result.put("errorMsg", e.getMessage());
 			e.printStackTrace();
@@ -153,26 +156,24 @@ public class ProductDetails {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/addProduct")
-	public Response AddNewProductToRedis(ProductDetailsObj productDtlsObj) {
+	public Response addNewProductToRedis(ProductDetailsObj productDtlsObj) {
 		JSONObject result = new JSONObject();
 		try {
-			RedissonClient redisClient = redisConn.getRedisson();
+			RedissonClient redisClient = checkDatabaseConnection();
 			
-			if (productDtlsObj.getId() < 0)
+			if(productDtlsObj.getId() < 0)
 				throw new ProductIdNotValidException("Sorry. Product id not valid");
 			else if(productDtlsObj.getCurrent_price().getValue() < 0)
 				throw new Exception("Sorry. Price cannot be negative");
-			else if (redisClient == null)
-				throw new Exception("Sorry. No Database connection");
 
 			RMap<Integer, ProductDetailsObj> productListInRedis = redisClient.getMap("productList");
-			
+
 			if (productListInRedis.containsKey(productDtlsObj.getId()))
 				throw new Exception("Sorry. Data already exists");
-			
+
 			productListInRedis.put(productDtlsObj.getId(), productDtlsObj);
 
-			result.put("result", "Success");
+			result.put("result", "success");
 
 		} catch (ProductIdNotValidException e) {
 			result.put("errorMsg", e.getMessage());
@@ -182,7 +183,7 @@ public class ProductDetails {
 			e.printStackTrace();
 		}
 
-		if(result.has("errorMsg"))	
+		if (result.has("errorMsg"))
 			return Response.status(200).entity(result.toString()).build();
 		else
 			return Response.status(201).entity(result.toString()).build();
@@ -190,6 +191,14 @@ public class ProductDetails {
 
 	private static URI getBaseURI() {
 		return UriBuilder.fromUri("http://redsky.target.com").build();
+	}
+	private RedissonClient checkDatabaseConnection() throws Exception {
+		if (redisConn == null)
+			throw new Exception("Sorry. No Database connection");
+		RedissonClient redisClient = redisConn.getRedisson();
+		if (redisClient == null)
+			throw new Exception("Sorry. No Database connection");
+		return redisClient;
 	}
 
 }

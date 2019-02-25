@@ -2,6 +2,8 @@ package com.casestudy.obj.product;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.casestudy.misc.ProductIdNotValidException;
+
 @XmlRootElement
 public class ProductDetailsObj implements java.io.Serializable{
 
@@ -12,7 +14,9 @@ public class ProductDetailsObj implements java.io.Serializable{
 	private ProductPriceObj current_price;
 	private String errorMsg;
 	
-	public ProductDetailsObj(Integer id, String name, ProductPriceObj current_price) {
+	public ProductDetailsObj(int id, String name, ProductPriceObj current_price) throws ProductIdNotValidException {
+		if(id < 0)
+			throw new ProductIdNotValidException("Sorry. Product id not valid");
 		this.id = id;
 		this.name = name;
 		this.current_price = current_price;
@@ -20,6 +24,11 @@ public class ProductDetailsObj implements java.io.Serializable{
 	
 	public ProductDetailsObj(String errorMsg) {
 		this.errorMsg = errorMsg;
+	}
+	
+	public ProductDetailsObj(int id) throws ProductIdNotValidException{
+		if(id < 0)
+			throw new ProductIdNotValidException("Sorry. Product id not valid");
 	}
 	
 	public ProductDetailsObj() {}

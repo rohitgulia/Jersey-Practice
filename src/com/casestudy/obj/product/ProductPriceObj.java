@@ -10,7 +10,9 @@ public class ProductPriceObj implements java.io.Serializable{
 	private double value;
 	private String currency_code;
 	
-	public ProductPriceObj(double value, String currency_code) {
+	public ProductPriceObj(double value, String currency_code) throws Exception {
+		if(value < 0)
+			throw new Exception("Sorry. Price cannot be negative");
 		this.value = value;
 		this.currency_code = currency_code;
 	}
