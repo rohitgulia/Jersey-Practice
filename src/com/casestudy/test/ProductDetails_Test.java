@@ -45,13 +45,6 @@ public class ProductDetails_Test {
     }
     
     @Test
-    public void updateProductPrice_negativeProductIdInPathParam_throwsProductIdNotValidException() throws ProductIdNotValidException, Exception {
-    	expectdException.expect(ProductIdNotValidException.class);
-    	expectdException.expectMessage("Sorry. Product id not valid");
-    	consumerTest.updateData_invalidProductIdInPathParam_throwException();
-    }
-    
-    @Test
     public void updateProductPrice_negativePrice_throwsException() throws ProductIdNotValidException, Exception {
     	expectdException.expect(Exception.class);
     	expectdException.expectMessage("Sorry. Price cannot be negative");

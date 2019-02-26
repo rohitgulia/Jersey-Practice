@@ -46,13 +46,6 @@ public class Consumer_Test {
 				.put(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
 	}
 	
-	public void updateData_invalidProductIdInPathParam_throwException() throws ProductIdNotValidException, Exception {
-		ProductPriceObj productPriceObj = new ProductPriceObj(42.33, "CAD");
-		ProductDetailsObj productDtlsObj = new ProductDetailsObj(3860428, "Movie2", productPriceObj);
-		client.target(URL).path("-3860428").request(MediaType.APPLICATION_JSON)
-				.put(Entity.entity(productDtlsObj, MediaType.APPLICATION_JSON));
-	}
-	
 	public void getData() {
 		Response response = client.target(URL).path("13860428").request(MediaType.APPLICATION_JSON).get();
 
