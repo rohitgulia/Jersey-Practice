@@ -42,7 +42,7 @@ import org.json.JSONObject;
 
 import javax.ws.rs.PathParam;
 
-//http://localhost:8080/CaseStudy/api/products/13860428
+//http://localhost:8080/CaseStudy/api/products
 @Path("/products")
 public class ProductDetails {
 
@@ -50,6 +50,7 @@ public class ProductDetails {
 	private RedisConnectionSetup redisConn;
 
 	// get product details
+	//http://localhost:8080/CaseStudy/api/products/13860428
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("{id}")
