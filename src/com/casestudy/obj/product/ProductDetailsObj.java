@@ -12,7 +12,6 @@ public class ProductDetailsObj implements java.io.Serializable{
 	private int id;
 	private String name;
 	private ProductPriceObj current_price;
-	private String errorMsg;
 	
 	public ProductDetailsObj(int id, String name, ProductPriceObj current_price) throws ProductIdNotValidException {
 		if(id < 0)
@@ -20,10 +19,6 @@ public class ProductDetailsObj implements java.io.Serializable{
 		this.id = id;
 		this.name = name;
 		this.current_price = current_price;
-	}
-	
-	public ProductDetailsObj(String errorMsg) {
-		this.errorMsg = errorMsg;
 	}
 	
 	public ProductDetailsObj(int id) throws ProductIdNotValidException{
@@ -51,11 +46,4 @@ public class ProductDetailsObj implements java.io.Serializable{
 	public void setCurrent_price(ProductPriceObj current_price) {
 		this.current_price = current_price;
 	}
-	public String getErrorMsg() {
-		return errorMsg;
-	}
-	public void setErrorMsg(String errorMsg) {
-		this.errorMsg = errorMsg;
-	}
-
 }

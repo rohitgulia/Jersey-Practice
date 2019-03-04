@@ -11,6 +11,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.json.JSONObject;
+
+import com.casestudy.misc.ProductIdNotValidException;
 import com.casestudy.obj.product.ProductDetailsObj;
 import com.casestudy.redis.RedisConnectionSetup;
 import com.casestudy.service.Iproduct;
@@ -33,7 +35,12 @@ public class ProductDetails {
 	@Path("{id}")
 	public Response getProductDetails(@NotNull @PathParam("id") String id) {
 		product = new ProductService(redisConn);
-		ProductDetailsObj productDtlsObj = product.getProductDetails(id);
+		ProductDetailsObj productDtlsObj;
+		try {
+			productDtlsObj = product.getProductDetails(id);
+		} catch (Exception e) {
+			return Response.status(204).build(); // 204: no content http status
+		}
 		return Response.status(200).entity(productDtlsObj).build();
 	}
 
@@ -44,7 +51,14 @@ public class ProductDetails {
 	@Path("{id}")
 	public Response updateProductPrice(ProductDetailsObj productDtlsObj, @NotNull @PathParam("id") String id) {
 		product = new ProductService(redisConn);
-		JSONObject result = product.updateProductDetails(productDtlsObj, id);
+		JSONObject result = null;
+		try {
+			result = product.updateProductDetails(productDtlsObj, id);
+		} catch(ProductIdNotValidException e) {
+			return Response.status(409).entity("Product Id not valid").build(); // 409: conflict status
+		} catch (Exception e) {
+			return Response.status(204).entity("Product not found").build();
+		}
 		return Response.status(200).entity(result.toString()).build();
 	}
 
@@ -56,11 +70,15 @@ public class ProductDetails {
 	@Path("/addProduct")
 	public Response addNewProductToRedis(ProductDetailsObj productDtlsObj) {
 		product = new ProductService(redisConn);
-		JSONObject result = product.addProductDetails(productDtlsObj);
-		if (result.has("errorMsg"))
-			return Response.status(200).entity(result.toString()).build();
-		else
-			return Response.status(201).entity(result.toString()).build();
+		try {
+			product.addProductDetails(productDtlsObj);
+		} catch(ProductIdNotValidException e) {
+			return Response.status(409).entity("Product Id not valid").build();
+		}
+		catch (Exception e) {
+			return Response.status(409).entity(e.getMessage()).build();
+		}
+		return Response.status(201).entity("Success").build(); // 201: Http created status
 	}
 
 }
